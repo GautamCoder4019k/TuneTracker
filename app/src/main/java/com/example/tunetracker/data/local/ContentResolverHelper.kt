@@ -62,7 +62,7 @@ constructor(@ApplicationContext val context: Context) {
 
             cursor.apply {
                 if (count == 0) {
-                    Log.e("cursor", "getCursorData: Cursor is empty ")
+                    Log.d("cursor", "no data found")
                 } else {
                     while (cursor.moveToNext()) {
                         val displayName = getString(displayNameColumn)

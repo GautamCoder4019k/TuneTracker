@@ -4,6 +4,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.drawable.Drawable
+import android.net.Uri
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.PlayerNotificationManager
@@ -11,6 +12,9 @@ import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.bumptech.glide.request.target.CustomTarget
 import com.bumptech.glide.request.transition.Transition
+import com.example.tunetracker.R
+
+private const val URI_PATH = "android.resource://com.example.tunetracker/"
 
 @UnstableApi
 class AudioNotificationAdapter(
@@ -22,7 +26,7 @@ class AudioNotificationAdapter(
 
     override fun createCurrentContentIntent(player: Player): PendingIntent? = pendingIntent
 
-    override fun getCurrentContentText(player: Player): CharSequence? =
+    override fun getCurrentContentText(player: Player): CharSequence =
         player.mediaMetadata.displayTitle ?: "Unknown"
 
     override fun getCurrentLargeIcon(
@@ -31,12 +35,15 @@ class AudioNotificationAdapter(
     ): Bitmap? {
         Glide.with(context)
             .asBitmap()
-            .load(player.mediaMetadata.artworkUri)
+            .load(
+                player.mediaMetadata.artworkUri ?: Uri.parse(URI_PATH + R.drawable.musicbackground)
+            )
             .diskCacheStrategy(DiskCacheStrategy.ALL)
             .into(object : CustomTarget<Bitmap>() {
                 override fun onResourceReady(resource: Bitmap, transition: Transition<in Bitmap>?) {
                     callback.onBitmap(resource)
                 }
+
                 override fun onLoadCleared(placeholder: Drawable?) = Unit
             })
         return null

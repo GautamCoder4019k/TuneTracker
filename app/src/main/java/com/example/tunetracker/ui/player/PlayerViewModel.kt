@@ -2,7 +2,9 @@ package com.example.tunetracker.ui.player
 
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlin.random.Random
+
 
 class PlayerViewModel : ViewModel() {
 

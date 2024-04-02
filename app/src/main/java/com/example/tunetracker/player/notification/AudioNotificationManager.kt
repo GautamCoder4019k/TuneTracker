@@ -55,6 +55,7 @@ class AudioNotificationManager @Inject constructor(
 
     @UnstableApi
     private fun buildNotification(mediaSession: MediaSession) {
+        println(mediaSession.sessionActivity)
         PlayerNotificationManager.Builder(
             context,
             NOTIFICATION_ID,
