@@ -21,6 +21,7 @@ import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
@@ -35,6 +36,8 @@ import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.tunetracker.data.local.model.Audio
+import com.example.tunetracker.ui.player.noRippleClickable
+import com.example.tunetracker.ui.theme.White
 
 @SuppressLint("StateFlowValueCalledInComposition")
 @Composable
@@ -47,17 +50,21 @@ fun HomeScreen(
     audioList: List<Audio>,
     onStart: () -> Unit,
     onItemClick: (Int) -> Unit,
+    onBottomPlayerClicked: () -> Unit,
     onNext: () -> Unit
 ) {
     Scaffold(bottomBar = {
-        BottomBarPlayer(
-            progress = progress,
-            onProgress = onProgress,
-            audio = currentPlayingAudio,
-            isAudioPlaying = isAudioPlaying,
-            onStart = onStart,
-            onNext = onNext
-        )
+
+        if (viewModel.currentSelectedAudio != audioDummy)
+            BottomBarPlayer(
+                progress = progress,
+                onProgress = onProgress,
+                audio = currentPlayingAudio,
+                isAudioPlaying = isAudioPlaying,
+                onStart = onStart,
+                onNext = onNext,
+                onBottomBarClicked = onBottomPlayerClicked
+            )
     }) {
         when (viewModel.uiState.value) {
             UIState.Ready -> {
@@ -77,6 +84,7 @@ fun HomeScreen(
 
     }
 }
+
 
 @Composable
 fun AudioItem(
@@ -116,30 +124,41 @@ fun BottomBarPlayer(
     audio: Audio,
     isAudioPlaying: Boolean,
     onStart: () -> Unit,
-    onNext: () -> Unit
+    onNext: () -> Unit,
+    onBottomBarClicked: () -> Unit
 ) {
-    BottomAppBar {
-        Column(modifier = Modifier.padding(8.dp)) {
-            Row(
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp)
-            ) {
-                ArtistInfo(
-                    audio = audio,
-                    modifier = Modifier.weight(1f)
-                )
-                MediaPlayerController(
-                    isPlaying = isAudioPlaying,
-                    onStart = onStart,
-                    onNext = onNext
-                )
-                Slider(value = progress, onValueChange = { onProgress(it) }, valueRange = 0f..100f)
-            }
+
+    Card(modifier = Modifier
+        .padding(4.dp)
+        .noRippleClickable { onBottomBarClicked() }) {
+        Row(
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp)
+        ) {
+            ArtistInfo(
+                audio = audio,
+                modifier = Modifier.weight(1f)
+            )
+            MediaPlayerController(
+                isPlaying = isAudioPlaying,
+                onStart = onStart,
+                onNext = onNext
+            )
+
         }
+        LinearProgressIndicator(
+            progress = { progress / 100f },
+            color = White,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp)
+        )
     }
+
+
 }
 
 
@@ -204,7 +223,7 @@ fun ArtistInfo(modifier: Modifier = Modifier, audio: Audio) {
 
 @Preview(showSystemUi = true)
 @Composable
-private fun HomeScreemPreview() {
+private fun HomeScreenPreview() {
     HomeScreen(
         progress = 50f,
         onProgress = {},
@@ -216,7 +235,8 @@ private fun HomeScreemPreview() {
         ),
         onStart = { /*TODO*/ },
         viewModel = viewModel(),
-        onItemClick = {}
+        onItemClick = {},
+        onBottomPlayerClicked = {}
     ) {
 
     }

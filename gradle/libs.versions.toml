@@ -2,6 +2,7 @@
 accompanistPermissions = "0.30.0"
 agp = "8.3.1"
 coilCompose = "2.4.0"
+composeVersion = "1.0.0-beta01"
 glide = "4.15.1"
 hiltAndroid = "2.49"
 hiltNavigationCompose = "1.2.0"
@@ -18,6 +19,7 @@ lifecycleViewmodelCompose = "2.7.0"
 materialIconsExtended = "1.6.4"
 media3Session = "1.3.0"
 navigationCompose = "2.7.7"
+paletteKtx = "1.0.0"
 
 [libraries]
 accompanist-permissions = { module = "com.google.accompanist:accompanist-permissions", version.ref = "accompanistPermissions" }
@@ -30,8 +32,10 @@ androidx-media3-exoplayer = { module = "androidx.media3:media3-exoplayer", versi
 androidx-media3-session = { module = "androidx.media3:media3-session", version.ref = "media3Session" }
 androidx-media3-ui = { module = "androidx.media3:media3-ui", version.ref = "media3Session" }
 androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
+androidx-palette-ktx = { module = "androidx.palette:palette-ktx", version.ref = "paletteKtx" }
 coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coilCompose" }
 glide = { module = "com.github.bumptech.glide:glide", version.ref = "glide" }
+glide-compose = { module = "com.github.bumptech.glide:compose", version.ref = "composeVersion" }
 hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hiltAndroid" }
 hilt-android-compiler = { module = "com.google.dagger:hilt-android-compiler", version.ref = "hiltAndroid" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }

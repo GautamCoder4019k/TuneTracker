@@ -1,5 +1,7 @@
 package com.example.tunetracker.player.service
 
+import android.util.Log
+import androidx.media3.common.AudioAttributes
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
@@ -47,8 +49,14 @@ class AudioServiceHandler @Inject constructor(
             PlayerEvent.Backward -> exoPlayer.seekBack()
             PlayerEvent.Forward -> exoPlayer.seekForward()
             PlayerEvent.SeekToNext -> exoPlayer.seekToNext()
+            PlayerEvent.SeekToPrevious -> exoPlayer.seekToPrevious()
             PlayerEvent.PlayPause -> playOrPause()
             PlayerEvent.SeekTo -> exoPlayer.seekTo(seekPosition)
+            PlayerEvent.Repeat -> {
+                exoPlayer.repeatMode =
+                    if (exoPlayer.repeatMode == Player.REPEAT_MODE_ONE) Player.REPEAT_MODE_OFF else Player.REPEAT_MODE_ONE
+            }
+            PlayerEvent.Shuffle -> exoPlayer.shuffleModeEnabled = !exoPlayer.shuffleModeEnabled
             PlayerEvent.SelectedAudioChange -> {
                 when (selectedAudioIndex) {
                     exoPlayer.currentMediaItemIndex -> {
@@ -80,19 +88,24 @@ class AudioServiceHandler @Inject constructor(
 
             ExoPlayer.STATE_READY -> _audioState.value = AudioState.Ready(exoPlayer.duration)
             Player.STATE_ENDED -> {
-                TODO()
+
             }
 
             Player.STATE_IDLE -> {
-                TODO()
+                _audioState.value = AudioState.Idle
             }
         }
     }
 
+    override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+        super.onMediaItemTransition(mediaItem, reason)
+        _audioState.value = AudioState.CurrentPlaying(exoPlayer.currentMediaItemIndex)
+    }
+
     @OptIn(DelicateCoroutinesApi::class)
     override fun onIsPlayingChanged(isPlaying: Boolean) {
-        _audioState.value = AudioState.Playing(isPlaying = isPlaying)
         _audioState.value = AudioState.CurrentPlaying(exoPlayer.currentMediaItemIndex)
+        _audioState.value = AudioState.Playing(isPlaying = isPlaying)
         if (isPlaying) {
             GlobalScope.launch(Dispatchers.Main) {
                 startProgressUpdate()
@@ -132,15 +145,19 @@ sealed class PlayerEvent {
     data object SelectedAudioChange : PlayerEvent()
     data object Backward : PlayerEvent()
     data object SeekToNext : PlayerEvent()
+    data object SeekToPrevious : PlayerEvent()
     data object Forward : PlayerEvent()
     data object SeekTo : PlayerEvent()
     data object Stop : PlayerEvent()
+    data object Repeat : PlayerEvent()
+    data object Shuffle : PlayerEvent()
     data class UpdateProgress(val newProgress: Float) : PlayerEvent()
 
 }
 
 sealed class AudioState {
     data object Initial : AudioState()
+    data object Idle : AudioState()
     data class Ready(val duration: Long) : AudioState()
     data class Progress(val progress: Long) : AudioState()
     data class Buffering(val progress: Long) : AudioState()

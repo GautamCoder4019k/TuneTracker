@@ -1,7 +1,9 @@
 package com.example.tunetracker.ui.player
 
 import android.annotation.SuppressLint
-import androidx.compose.foundation.Image
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Color.parseColor
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -16,20 +18,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ChecklistRtl
-import androidx.compose.material.icons.filled.Circle
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PauseCircleOutline
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.PlayCircle
-import androidx.compose.material.icons.filled.PlayCircleFilled
-import androidx.compose.material.icons.filled.PlayCircleOutline
+import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material3.Button
@@ -47,6 +43,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -57,20 +54,62 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.example.tunetracker.R
+import com.example.tunetracker.ui.audio.AudioViewModel
+import com.example.tunetracker.ui.audio.UIEvents
 import com.example.tunetracker.ui.theme.Green
 import com.example.tunetracker.ui.theme.White
 
+
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
-fun PlayerScreen(modifier: Modifier = Modifier, playerViewModel: PlayerViewModel = viewModel()) {
-    Scaffold(topBar = { PlayerTopAppBar() }) {
+fun PlayerScreen(
+    modifier: Modifier = Modifier,
+    audioViewModel: AudioViewModel,
+    isAudioPlaying: Boolean,
+    onStart: () -> Unit = {},
+    onNext: () -> Unit = {},
+    onPrevious: () -> Unit = {},
+    onRepeatClicked: () -> Unit = {},
+    onShuffleClicked: () -> Unit = {},
+    onDownIconClicked: () -> Unit = {}
+) {
+    val currentAudio = audioViewModel.currentSelectedAudio
+    val context = LocalContext.current
+    var bitmap: Bitmap? by remember {
+        mutableStateOf(null)
+    }
+    var lightVibrantColor by remember {
+        mutableStateOf(Color.White)
+    }
+    var darkVibrantColor by remember {
+        mutableStateOf(Color.Black)
+    }
+    val albumArtUri = audioViewModel.getAlbumArtUri(context, currentAudio.uri)
+    LaunchedEffect(key1 = currentAudio.uri) {
+        bitmap = albumArtUri?.let {
+            audioViewModel.getBitmapFromUri(
+                context,
+                it
+            ) ?: BitmapFactory.decodeResource(
+                context.resources,
+                R.drawable.musicbackground
+            )
+        }
+        lightVibrantColor = Color(parseColor(audioViewModel.extractLightColorsFromBitmap(bitmap!!)))
+        darkVibrantColor = Color(parseColor(audioViewModel.extractDarkColorsFromBitmap(bitmap!!)))
+
+    }
+    Scaffold(topBar = { PlayerTopAppBar(onDownIconClicked = onDownIconClicked) }) {
         Column(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -78,32 +117,55 @@ fun PlayerScreen(modifier: Modifier = Modifier, playerViewModel: PlayerViewModel
                 .background(
                     brush = Brush.verticalGradient(
                         colors = listOf(
-                            playerViewModel.getRandomColor(),
-                            playerViewModel.getRandomColor()
+                            lightVibrantColor,
+                            darkVibrantColor,
                         )
                     )
                 )
                 .padding(bottom = 16.dp)
 
         ) {
-            Spacer(modifier = Modifier.weight(2f))
-            Image(
-                painter = painterResource(R.drawable.songimage),
-                contentDescription = "Song Cover Image",
-                contentScale = ContentScale.Crop,
+            Spacer(modifier = Modifier.weight(3f))
+            AsyncImage(
+                model = ImageRequest.Builder(LocalContext.current)
+                    .data(albumArtUri)
+                    .error(R.drawable.musicbackground)
+                    .build(),
+                contentDescription = null,
+                contentScale = ContentScale.FillBounds,
                 modifier = Modifier
                     .padding(16.dp)
-                    .sizeIn(maxWidth = 500.dp, maxHeight = 500.dp)
+
                     .aspectRatio(1f)
                     .clip(RoundedCornerShape(12.dp))
-                    .weight(10f)
+                    .weight(11f)
             )
-            SongDescription(songName = "Song name", artistName = "artist")
+            Spacer(modifier = Modifier.height(32.dp))
+            SongDescription(
+                songName = currentAudio.displayName,
+                artistName = currentAudio.artist
+            )
             Column(modifier = Modifier.weight(5f)) {
-                PlayerSlider()
+                PlayerSlider(
+                    progressString = audioViewModel.progressString,
+                    totalDuration = audioViewModel.formatDuration(audioViewModel.duration),
+                    progress = audioViewModel.progress,
+                    onProgress = {
+                        audioViewModel.onUiEvents(
+                            UIEvents.SeekTo(it)
+                        )
+                    })
                 PlayerButtons(
                     modifier = Modifier
-                        .padding(horizontal = 16.dp)
+                        .padding(horizontal = 16.dp),
+                    isAudioPlaying = isAudioPlaying,
+                    onStart = onStart,
+                    onNext = onNext,
+                    onPrevious = onPrevious,
+                    onRepeatClicked = onRepeatClicked,
+                    isRepeating = audioViewModel.isRepeating,
+                    isShuffleOn = audioViewModel.isShuffleOn,
+                    onShuffleClicked = onShuffleClicked
                 )
 
             }
@@ -114,7 +176,7 @@ fun PlayerScreen(modifier: Modifier = Modifier, playerViewModel: PlayerViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PlayerTopAppBar() {
+fun PlayerTopAppBar(onDownIconClicked: () -> Unit) {
     TopAppBar(
         title = {
             Column(
@@ -145,7 +207,7 @@ fun PlayerTopAppBar() {
             }
         },
         navigationIcon = {
-            IconButton(onClick = { /*TODO*/ }) {
+            IconButton(onClick = onDownIconClicked) {
                 Icon(
                     imageVector = Icons.Default.KeyboardArrowDown,
                     contentDescription = "Go back",
@@ -164,6 +226,7 @@ fun SongDescription(songName: String, artistName: String) {
         text = songName,
         style = MaterialTheme.typography.headlineSmall,
         color = Color.White,
+        maxLines = 1,
         fontWeight = FontWeight.Bold,
         modifier = Modifier
             .padding(horizontal = 16.dp)
@@ -173,6 +236,7 @@ fun SongDescription(songName: String, artistName: String) {
         text = artistName,
         style = MaterialTheme.typography.headlineSmall,
         color = Color.Gray,
+        maxLines = 1,
         modifier = Modifier
             .padding(horizontal = 16.dp)
             .fillMaxWidth()
@@ -181,9 +245,14 @@ fun SongDescription(songName: String, artistName: String) {
 
 @SuppressLint("UnrememberedMutableInteractionSource")
 @OptIn(ExperimentalMaterial3Api::class)
-@Preview(showBackground = true)
 @Composable
-fun PlayerSlider(modifier: Modifier = Modifier) {
+fun PlayerSlider(
+    modifier: Modifier = Modifier,
+    progressString: String,
+    totalDuration: String,
+    progress: Float,
+    onProgress: (Float) -> Unit,
+) {
     val interactionSource = MutableInteractionSource()
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -192,8 +261,9 @@ fun PlayerSlider(modifier: Modifier = Modifier) {
     ) {
         CompositionLocalProvider(LocalMinimumInteractiveComponentEnforcement provides false) {
             Slider(
-                value = 0.3f,
-                onValueChange = {},
+                value = progress,
+                onValueChange = { onProgress(it) },
+                valueRange = 0f..100f,
                 thumb = {
                     SliderDefaults.Thumb(
                         interactionSource = interactionSource,
@@ -218,8 +288,8 @@ fun PlayerSlider(modifier: Modifier = Modifier) {
                 .fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text(text = "0.00", color = Color.White)
-            Text(text = "0.00", color = Color.White)
+            Text(text = progressString, color = Color.White)
+            Text(text = totalDuration, color = Color.White)
 
         }
 
@@ -228,26 +298,30 @@ fun PlayerSlider(modifier: Modifier = Modifier) {
 
 
 @Composable
-fun PlayerButtons(modifier: Modifier = Modifier) {
+fun PlayerButtons(
+    modifier: Modifier = Modifier,
+    isAudioPlaying: Boolean,
+    isRepeating: Boolean,
+    onStart: () -> Unit,
+    onNext: () -> Unit,
+    onPrevious: () -> Unit,
+    onRepeatClicked: () -> Unit,
+    isShuffleOn: Boolean,
+    onShuffleClicked: () -> Unit
+) {
     Row(
         modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        var iconColor by remember {
-            mutableStateOf(Color.White)
-        }
-        var isPlaying by remember {
-            mutableStateOf(false)
-        }
         Icon(
             painter = painterResource(id = R.drawable.shuffle),
             contentDescription = "Shuffle songs",
-            tint = iconColor,
+            tint = if (isShuffleOn) Green else Color.White,
             modifier = Modifier
                 .size(24.dp)
-                .clickable {
-                    iconColor = if (iconColor == Color.White) Green else Color.White
+                .noRippleClickable {
+                    onShuffleClicked()
                 }
         )
         Icon(
@@ -256,17 +330,17 @@ fun PlayerButtons(modifier: Modifier = Modifier) {
             tint = Color.White,
             modifier = Modifier
                 .size(48.dp)
-                .clickable { }
+                .noRippleClickable { onPrevious() }
         )
         Button(
-            onClick = { isPlaying=!isPlaying },
+            onClick = onStart,
             shape = CircleShape,
             contentPadding = PaddingValues(0.dp),
             colors = ButtonDefaults.buttonColors(containerColor = White),
             modifier = Modifier.size(72.dp)
         ) {
             Icon(
-                imageVector = if(isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                imageVector = if (isAudioPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
                 contentDescription = null,
                 tint = Color.Black,
                 modifier = Modifier.size(48.dp)
@@ -274,24 +348,42 @@ fun PlayerButtons(modifier: Modifier = Modifier) {
         }
         Icon(
             imageVector = Icons.Filled.SkipNext,
-            contentDescription = "Previous",
+            contentDescription = "Next",
             tint = Color.White,
             modifier = Modifier
                 .size(48.dp)
-                .clickable { }
+                .noRippleClickable { onNext() }
         )
         Icon(
-            imageVector = Icons.Default.ChecklistRtl,
+            imageVector = Icons.Default.Repeat,
             contentDescription = null,
-            tint = Color.White,
-            modifier = Modifier.size(30.dp)
+            tint = if (isRepeating) Green else Color.White,
+            modifier = Modifier
+                .size(30.dp)
+                .noRippleClickable {
+                    onRepeatClicked()
+                }
         )
     }
 }
+
+@Composable
+fun Modifier.noRippleClickable(
+    onClick: () -> Unit
+): Modifier = this then
+        clickable(
+            indication = null,
+            interactionSource = remember { MutableInteractionSource() }) {
+            onClick()
+        }
 
 
 @Preview(showSystemUi = true, showBackground = true)
 @Composable
 private fun PlayerScreenPreview() {
-    PlayerScreen(modifier = Modifier.fillMaxSize())
+    PlayerScreen(
+        modifier = Modifier.fillMaxSize(),
+        viewModel(),
+        isAudioPlaying = false,
+    )
 }

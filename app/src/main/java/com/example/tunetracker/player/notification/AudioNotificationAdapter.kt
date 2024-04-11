@@ -14,7 +14,7 @@ import com.bumptech.glide.request.target.CustomTarget
 import com.bumptech.glide.request.transition.Transition
 import com.example.tunetracker.R
 
-private const val URI_PATH = "android.resource://com.example.tunetracker/"
+const val URI_PATH = "android.resource://com.example.tunetracker/"
 
 @UnstableApi
 class AudioNotificationAdapter(
@@ -43,7 +43,6 @@ class AudioNotificationAdapter(
                 override fun onResourceReady(resource: Bitmap, transition: Transition<in Bitmap>?) {
                     callback.onBitmap(resource)
                 }
-
                 override fun onLoadCleared(placeholder: Drawable?) = Unit
             })
         return null
