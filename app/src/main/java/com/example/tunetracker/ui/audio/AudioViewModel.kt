@@ -1,12 +1,10 @@
 package com.example.tunetracker.ui.audio
 
-import android.annotation.SuppressLint
-import android.content.ContentUris
 import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
+import android.graphics.drawable.Drawable
 import android.net.Uri
-import android.provider.MediaStore
+import android.util.Log
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -19,25 +17,29 @@ import androidx.lifecycle.viewmodel.compose.saveable
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.palette.graphics.Palette
+import com.bumptech.glide.Glide
+import com.bumptech.glide.request.target.CustomTarget
+import com.bumptech.glide.request.transition.Transition
 import com.example.tunetracker.data.local.model.Audio
+import com.example.tunetracker.data.remote.api.SpotifyAuthService
 import com.example.tunetracker.data.repository.AudioRepository
 import com.example.tunetracker.player.service.AudioServiceHandler
 import com.example.tunetracker.player.service.AudioState
 import com.example.tunetracker.player.service.PlayerEvent
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 val audioDummy = Audio(
-    "".toUri(), "", 0L, "", "", 0, ""
+    "".toUri(), "", "0", "", "", 0, "", "".toUri()
 )
+
+
 
 @HiltViewModel
 @OptIn(SavedStateHandleSaveableApi::class)
@@ -73,6 +75,11 @@ class AudioViewModel @Inject constructor(
                     AudioState.Initial -> _uiState.value = UIState.Initial
                     is AudioState.Buffering -> calculateProgressValue(mediaState.progress)
                     is AudioState.CurrentPlaying -> {
+                        Log.d(
+                            "Selected", "setMediaItem:${audioList.last()} ,${
+                                mediaState.mediaItemIndex
+                            }"
+                        )
                         currentSelectedAudio = audioList[mediaState.mediaItemIndex]
                     }
 
@@ -98,6 +105,20 @@ class AudioViewModel @Inject constructor(
             setMediaItems()
             _uiState.value = UIState.Ready
         }
+    }
+
+    fun setMediaItem(audio: Audio, uri: String) {
+        MediaItem.Builder().setUri(uri).setMediaMetadata(
+            MediaMetadata.Builder().setAlbumArtist(audio.artist)
+                .setDisplayTitle(audio.title).setSubtitle(audio.displayName).build()
+        ).build()
+            .also {
+                audioList = listOf()
+                audioList += audio
+                audioServiceHandler.setMediaItem(it)
+                Log.d("Selected", "setMediaItem:${audioList.last()} ,${audioList.lastIndex}")
+//                onUiEvents(UIEvents.SelectedAudioChange(audioList.lastIndex))
+            }
     }
 
     private fun setMediaItems() {
@@ -165,32 +186,20 @@ class AudioViewModel @Inject constructor(
 
     }
 
-    suspend fun getBitmapFromUri(context: Context, uri: Uri): Bitmap? {
-        return withContext(Dispatchers.IO) {
-            try {
-                context.contentResolver.openInputStream(uri)?.use { inputStream ->
-                    BitmapFactory.decodeStream(inputStream)
+    fun getBitmapFromUri(context: Context, uri: Uri, bitmapCallback: (Bitmap) -> Unit) {
+        Glide.with(context)
+            .asBitmap()
+            .load(uri)
+            .into(object : CustomTarget<Bitmap>() {
+                override fun onResourceReady(resource: Bitmap, transition: Transition<in Bitmap>?) {
+                    // Invoke the callback with the loaded Bitmap
+                    bitmapCallback(resource)
                 }
-            } catch (e: Exception) {
-                e.printStackTrace()
-                null
-            }
-        }
-    }
 
-    @SuppressLint("Range")
-    fun getAlbumArtUri(context: Context, audioUri: Uri): Uri? {
-        val projection = arrayOf(MediaStore.Audio.Media.ALBUM_ID)
-        context.contentResolver.query(audioUri, projection, null, null, null)?.use { cursor ->
-            if (cursor.moveToFirst()) {
-                val albumId = cursor.getLong(cursor.getColumnIndex(MediaStore.Audio.Media.ALBUM_ID))
-                return ContentUris.withAppendedId(
-                    Uri.parse("content://media/external/audio/albumart"),
-                    albumId
-                )
-            }
-        }
-        return null
+                override fun onLoadCleared(placeholder: Drawable?) {
+                    // Optional: Handle any cleanup if needed
+                }
+            })
     }
 
     fun extractDarkColorsFromBitmap(bitmap: Bitmap): String {

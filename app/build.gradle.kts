@@ -4,6 +4,7 @@ plugins {
     id("com.google.dagger.hilt.android")
     kotlin("kapt")
     id("kotlin-parcelize")
+    id("org.jetbrains.kotlin.plugin.serialization") version "1.8.10"
 }
 
 android {
@@ -63,6 +64,7 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.play.services.location)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -94,5 +96,16 @@ dependencies {
     implementation(libs.coil.compose)
     //Palette
     implementation(libs.androidx.palette.ktx)
+
+    // Retrofit
+    implementation(libs.retrofit)
+
+    // Kotlin serialization
+    implementation(libs.kotlinx.serialization.json)
+    //Gson Converter
+    implementation (libs.gson)
+    implementation (libs.converter.gson)
+    //for locking orientation
+    implementation (libs.androidx.ui.util)
 
 }

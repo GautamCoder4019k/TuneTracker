@@ -4,7 +4,10 @@ import android.annotation.SuppressLint
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color.parseColor
+import android.util.Log
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -66,6 +69,7 @@ import coil.request.ImageRequest
 import com.example.tunetracker.R
 import com.example.tunetracker.ui.audio.AudioViewModel
 import com.example.tunetracker.ui.audio.UIEvents
+import com.example.tunetracker.ui.components.LockScreenOrientation
 import com.example.tunetracker.ui.theme.Green
 import com.example.tunetracker.ui.theme.White
 
@@ -83,10 +87,16 @@ fun PlayerScreen(
     onShuffleClicked: () -> Unit = {},
     onDownIconClicked: () -> Unit = {}
 ) {
-    val currentAudio = audioViewModel.currentSelectedAudio
+    LockScreenOrientation()
+    Log.d("Audio", "PlayerScreen: ${audioViewModel.currentSelectedAudio} ")
     val context = LocalContext.current
     var bitmap: Bitmap? by remember {
-        mutableStateOf(null)
+        mutableStateOf(
+            BitmapFactory.decodeResource(
+                context.resources,
+                R.drawable.musicbackground
+            )
+        )
     }
     var lightVibrantColor by remember {
         mutableStateOf(Color.White)
@@ -94,21 +104,15 @@ fun PlayerScreen(
     var darkVibrantColor by remember {
         mutableStateOf(Color.Black)
     }
-    val albumArtUri = audioViewModel.getAlbumArtUri(context, currentAudio.uri)
-    LaunchedEffect(key1 = currentAudio.uri) {
-        bitmap = albumArtUri?.let {
-            audioViewModel.getBitmapFromUri(
-                context,
-                it
-            ) ?: BitmapFactory.decodeResource(
-                context.resources,
-                R.drawable.musicbackground
-            )
-        }
-        lightVibrantColor = Color(parseColor(audioViewModel.extractLightColorsFromBitmap(bitmap!!)))
-        darkVibrantColor = Color(parseColor(audioViewModel.extractDarkColorsFromBitmap(bitmap!!)))
-
+    audioViewModel.getBitmapFromUri(context, audioViewModel.currentSelectedAudio.albumArtUri) {
+        bitmap = it
     }
+    Log.d("Audio", "PlayerScreen: ${bitmap} ")
+    lightVibrantColor = Color(parseColor(audioViewModel.extractLightColorsFromBitmap(bitmap!!)))
+    darkVibrantColor = Color(parseColor(audioViewModel.extractDarkColorsFromBitmap(bitmap!!)))
+    Log.d("Audio", "PlayerScreen: ${lightVibrantColor},${darkVibrantColor}} ")
+
+
     Scaffold(topBar = { PlayerTopAppBar(onDownIconClicked = onDownIconClicked) }) {
         Column(
             verticalArrangement = Arrangement.Center,
@@ -128,22 +132,21 @@ fun PlayerScreen(
             Spacer(modifier = Modifier.weight(3f))
             AsyncImage(
                 model = ImageRequest.Builder(LocalContext.current)
-                    .data(albumArtUri)
+                    .data(audioViewModel.currentSelectedAudio.albumArtUri)
                     .error(R.drawable.musicbackground)
                     .build(),
                 contentDescription = null,
-                contentScale = ContentScale.FillBounds,
+                contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .padding(16.dp)
-
                     .aspectRatio(1f)
                     .clip(RoundedCornerShape(12.dp))
                     .weight(11f)
             )
             Spacer(modifier = Modifier.height(32.dp))
             SongDescription(
-                songName = currentAudio.displayName,
-                artistName = currentAudio.artist
+                songName = audioViewModel.currentSelectedAudio.displayName,
+                artistName = audioViewModel.currentSelectedAudio.artist
             )
             Column(modifier = Modifier.weight(5f)) {
                 PlayerSlider(
@@ -220,6 +223,7 @@ fun PlayerTopAppBar(onDownIconClicked: () -> Unit) {
     )
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun SongDescription(songName: String, artistName: String) {
     Text(
@@ -231,6 +235,7 @@ fun SongDescription(songName: String, artistName: String) {
         modifier = Modifier
             .padding(horizontal = 16.dp)
             .fillMaxWidth()
+            .basicMarquee()
     )
     Text(
         text = artistName,

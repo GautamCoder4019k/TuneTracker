@@ -28,7 +28,6 @@ fun PlayListScreen(
     Scaffold(bottomBar = {
         BottomBarPlayer(
             progress = progress,
-            onProgress = onProgress,
             audio = currentPlayingAudio,
             isAudioPlaying = isAudioPlaying,
             onStart = onStart,

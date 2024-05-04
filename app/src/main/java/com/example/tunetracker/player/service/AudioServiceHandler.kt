@@ -1,7 +1,5 @@
 package com.example.tunetracker.player.service
 
-import android.util.Log
-import androidx.media3.common.AudioAttributes
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
@@ -31,6 +29,14 @@ class AudioServiceHandler @Inject constructor(
     }
 
     fun addMediaItem(mediaItem: MediaItem) {
+        val newIndex = exoPlayer.mediaItemCount // Get the index of the newly added media item
+        exoPlayer.addMediaItem(mediaItem) // Add the media item to the player
+        exoPlayer.prepare() // Prepare the player
+        exoPlayer.seekTo(newIndex-1, 0) // Seek to the newly added media item
+        _audioState.value = AudioState.CurrentPlaying(newIndex-1) // Update the current playing audio
+    }
+
+    fun setMediaItem(mediaItem: MediaItem) {
         exoPlayer.setMediaItem(mediaItem)
         exoPlayer.prepare()
     }
@@ -38,6 +44,10 @@ class AudioServiceHandler @Inject constructor(
     fun setMediaItemList(mediaItems: List<MediaItem>) {
         exoPlayer.setMediaItems(mediaItems)
         exoPlayer.prepare()
+    }
+
+    fun releaseMedia() {
+        exoPlayer.clearMediaItems()
     }
 
     suspend fun onPlayerEvents(
@@ -56,6 +66,7 @@ class AudioServiceHandler @Inject constructor(
                 exoPlayer.repeatMode =
                     if (exoPlayer.repeatMode == Player.REPEAT_MODE_ONE) Player.REPEAT_MODE_OFF else Player.REPEAT_MODE_ONE
             }
+
             PlayerEvent.Shuffle -> exoPlayer.shuffleModeEnabled = !exoPlayer.shuffleModeEnabled
             PlayerEvent.SelectedAudioChange -> {
                 when (selectedAudioIndex) {
@@ -101,6 +112,8 @@ class AudioServiceHandler @Inject constructor(
         super.onMediaItemTransition(mediaItem, reason)
         _audioState.value = AudioState.CurrentPlaying(exoPlayer.currentMediaItemIndex)
     }
+
+
 
     @OptIn(DelicateCoroutinesApi::class)
     override fun onIsPlayingChanged(isPlaying: Boolean) {

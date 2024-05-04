@@ -6,11 +6,12 @@ import kotlinx.parcelize.Parcelize
 
 @Parcelize
 data class Audio(
-    val uri: Uri,
+    var uri: Uri,
     val displayName: String,
-    val id: Long,
+    val id: String,
     val artist: String,
     val data: String,
     val duration: Int,
-    val title: String
+    val title: String,
+    val albumArtUri:Uri
 ) : Parcelable

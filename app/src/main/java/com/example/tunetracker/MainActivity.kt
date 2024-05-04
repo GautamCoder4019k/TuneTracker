@@ -7,7 +7,6 @@ import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
@@ -20,8 +19,8 @@ import androidx.lifecycle.LifecycleEventObserver
 import com.example.tunetracker.player.service.AudioService
 import com.example.tunetracker.ui.TuneTrackerApp
 import com.example.tunetracker.ui.audio.AudioViewModel
-import com.example.tunetracker.ui.audio.HomeScreen
 import com.example.tunetracker.ui.audio.UIEvents
+import com.example.tunetracker.ui.search.SearchViewModel
 import com.example.tunetracker.ui.theme.TuneTrackerTheme
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberPermissionState
@@ -31,6 +30,7 @@ import dagger.hilt.android.AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
     private val viewModel: AudioViewModel by viewModels()
+    private val searchViewModel: SearchViewModel by viewModels()
     private var isServiceRunning = false
 
     @OptIn(ExperimentalPermissionsApi::class)
@@ -61,11 +61,13 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     TuneTrackerApp(
+                        searchViewModel = searchViewModel,
                         viewModel = viewModel,
                         onItemClick = {
                             viewModel.onUiEvents(UIEvents.SelectedAudioChange(it))
                             startService()
-                        }
+                        },
+                        startService = { startService() }
                     )
                 }
             }

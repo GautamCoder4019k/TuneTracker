@@ -3,8 +3,8 @@ package com.example.tunetracker.data.local
 import android.content.ContentUris
 import android.content.Context
 import android.database.Cursor
+import android.net.Uri
 import android.provider.MediaStore
-import android.util.Log
 import androidx.annotation.WorkerThread
 import com.example.tunetracker.data.local.model.Audio
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -21,6 +21,7 @@ constructor(@ApplicationContext val context: Context) {
         MediaStore.Audio.AudioColumns.DATA,
         MediaStore.Audio.AudioColumns.DURATION,
         MediaStore.Audio.AudioColumns.TITLE,
+        MediaStore.Audio.AudioColumns.ALBUM_ID
     )
 
     private var selectionClause: String? =
@@ -59,27 +60,30 @@ constructor(@ApplicationContext val context: Context) {
                 cursor.getColumnIndexOrThrow(MediaStore.Audio.AudioColumns.DURATION)
             val titleColumn =
                 cursor.getColumnIndexOrThrow(MediaStore.Audio.AudioColumns.TITLE)
+            val albumIdColumn =
+                cursor.getColumnIndexOrThrow(MediaStore.Audio.AudioColumns.ALBUM_ID)
 
-            cursor.apply {
-                if (count == 0) {
-                    Log.d("cursor", "no data found")
-                } else {
-                    while (cursor.moveToNext()) {
-                        val displayName = getString(displayNameColumn)
-                        val id = getLong(idColumn)
-                        val artist = getString(artistColumn)
-                        val data = getString(dataColumn)
-                        val duration = getInt(durationColumn)
-                        val title = getString(titleColumn)
-                        val uri = ContentUris.withAppendedId(
-                            MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
-                            id
-                        )
-                        audioList += Audio(
-                            uri, displayName, id, artist, data, duration, title
-                        )
-                    }
-                }
+            if (cursor.moveToFirst()) { // Move cursor to the first row
+                do {
+                    val displayName = cursor.getString(displayNameColumn)
+                    val id = cursor.getLong(idColumn)
+                    val artist = cursor.getString(artistColumn)
+                    val data = cursor.getString(dataColumn)
+                    val duration = cursor.getInt(durationColumn)
+                    val title = cursor.getString(titleColumn)
+                    val albumId = cursor.getLong(albumIdColumn)
+                    val uri = ContentUris.withAppendedId(
+                        MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                        id
+                    )
+                    val albumArtUri = ContentUris.withAppendedId(
+                        Uri.parse("content://media/external/audio/albumart"),
+                        albumId
+                    )
+                    audioList += Audio(
+                        uri, displayName, id.toString(), artist, data, duration, title, albumArtUri
+                    )
+                } while (cursor.moveToNext()) // Move cursor to the next row until there are no more rows
             }
         }
         return audioList

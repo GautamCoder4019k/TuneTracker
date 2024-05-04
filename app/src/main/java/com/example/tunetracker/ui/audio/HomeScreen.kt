@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -13,38 +14,40 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.SkipNext
-import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import com.example.tunetracker.R
 import com.example.tunetracker.data.local.model.Audio
 import com.example.tunetracker.ui.player.noRippleClickable
 import com.example.tunetracker.ui.theme.White
 
-@SuppressLint("StateFlowValueCalledInComposition")
+
 @Composable
 fun HomeScreen(
     viewModel: AudioViewModel,
     progress: Float,
-    onProgress: (Float) -> Unit,
     isAudioPlaying: Boolean,
     currentPlayingAudio: Audio,
     audioList: List<Audio>,
@@ -53,20 +56,9 @@ fun HomeScreen(
     onBottomPlayerClicked: () -> Unit,
     onNext: () -> Unit
 ) {
-    Scaffold(bottomBar = {
-
-        if (viewModel.currentSelectedAudio != audioDummy)
-            BottomBarPlayer(
-                progress = progress,
-                onProgress = onProgress,
-                audio = currentPlayingAudio,
-                isAudioPlaying = isAudioPlaying,
-                onStart = onStart,
-                onNext = onNext,
-                onBottomBarClicked = onBottomPlayerClicked
-            )
-    }) {
-        when (viewModel.uiState.value) {
+    Scaffold {
+        val uiState = viewModel.uiState.collectAsState()
+        when (uiState.value) {
             UIState.Ready -> {
                 LazyColumn(contentPadding = it) {
                     itemsIndexed(audioList) { index, audio ->
@@ -91,28 +83,43 @@ fun AudioItem(
     audio: Audio,
     onItemClick: () -> Unit
 ) {
-    Card(modifier = Modifier
-        .fillMaxWidth()
-        .padding(12.dp)
-        .clickable { onItemClick() }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp)
+            .clickable { onItemClick() },
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(16.dp)
-        ) {
-            Text(
-                text = audio.displayName,
-                fontWeight = FontWeight.Bold,
-                style = MaterialTheme.typography.titleLarge,
-                overflow = TextOverflow.Clip,
-            )
-            Spacer(modifier = Modifier.size(4.dp))
-            Text(
-                text = audio.artist,
-                fontWeight = FontWeight.Normal,
-                style = MaterialTheme.typography.bodySmall,
-                overflow = TextOverflow.Clip,
-            )
+        AsyncImage(
+            model = ImageRequest.Builder(LocalContext.current)
+                .data(audio.albumArtUri)
+                .error(R.drawable.musicbackground)
+                .build(),
+            contentDescription = "Song Image",
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .size(64.dp)
+                .aspectRatio(1f)
+        )
+        Column {
+            Column(
+                modifier = Modifier.padding(16.dp)
+            ) {
+                Text(
+                    text = audio.displayName,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    style = MaterialTheme.typography.bodyLarge,
+                    overflow = TextOverflow.Clip,
+                )
+                Spacer(modifier = Modifier.size(4.dp))
+                Text(
+                    text = audio.artist,
+                    fontWeight = FontWeight.Normal,
+                    style = MaterialTheme.typography.bodySmall,
+                    overflow = TextOverflow.Clip,
+                )
+            }
         }
     }
 }
@@ -120,7 +127,6 @@ fun AudioItem(
 @Composable
 fun BottomBarPlayer(
     progress: Float,
-    onProgress: (Float) -> Unit,
     audio: Audio,
     isAudioPlaying: Boolean,
     onStart: () -> Unit,
@@ -129,7 +135,7 @@ fun BottomBarPlayer(
 ) {
 
     Card(modifier = Modifier
-        .padding(4.dp)
+        .padding(horizontal = 4.dp)
         .noRippleClickable { onBottomBarClicked() }) {
         Row(
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -191,20 +197,28 @@ fun MediaPlayerController(
 @Composable
 fun ArtistInfo(modifier: Modifier = Modifier, audio: Audio) {
     Row(
-        modifier = modifier.padding(4.dp),
+        modifier = modifier.padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            imageVector = Icons.Default.MusicNote,
-            contentDescription = null,
-            modifier = Modifier.clickable { }
+        AsyncImage(
+            model = ImageRequest.Builder(LocalContext.current)
+                .data(audio.albumArtUri)
+                .error(R.drawable.musicbackground)
+                .build(),
+            contentDescription = "Song Image",
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .size(56.dp)
+                .aspectRatio(1f)
+                .padding(8.dp)
         )
         Spacer(modifier = Modifier.size(4.dp))
-        Column {
+        Column(verticalArrangement = Arrangement.Center) {
             Text(
                 text = audio.title,
                 fontWeight = FontWeight.Bold,
-                style = MaterialTheme.typography.titleLarge,
+                color = White,
+                style = MaterialTheme.typography.bodyLarge,
                 overflow = TextOverflow.Clip,
                 modifier = Modifier.weight(1f),
                 maxLines = 1
@@ -226,12 +240,11 @@ fun ArtistInfo(modifier: Modifier = Modifier, audio: Audio) {
 private fun HomeScreenPreview() {
     HomeScreen(
         progress = 50f,
-        onProgress = {},
         isAudioPlaying = true,
-        currentPlayingAudio = Audio("".toUri(), "Title One", 0L, "said", "", 0, ""),
+        currentPlayingAudio = audioDummy,
         audioList = listOf(
-            Audio("".toUri(), "Title One", 0L, "said", "", 0, ""),
-            Audio("".toUri(), "Title One", 0L, "said", "", 0, ""),
+            Audio("".toUri(), "Title One", "0", "said", "", 0, "", "".toUri()),
+            Audio("".toUri(), "Title One", "0", "said", "", 0, "", "".toUri()),
         ),
         onStart = { /*TODO*/ },
         viewModel = viewModel(),
