@@ -11,6 +11,10 @@ TuneTracker is a powerful music player app built using Kotlin and Jetpack Compos
 - **Download Songs**: Allows users to save their favorite tracks for offline listening.
 - **Background Play**: Enjoy music while using other apps or when the screen is off.
 
+## Demo Video
+https://github.com/user-attachments/assets/adef8b11-9f3a-4ca9-9a39-9b7da3639444
+
+
 ## Screenshots
 
 <!-- Add resized screenshots of your app here -->
